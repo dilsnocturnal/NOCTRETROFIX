@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NOCT.RETRO</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700..800&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: ruang gelap fotografer. Kanvas besar di kiri dan panel gaya Lightroom di kanan.
+   Di HP kanvas menempel di atas, panel bergulir di bawahnya. Satu tema gelap, dipilih sengaja. */
+:root {
+  color-scheme: dark;
+  --bg: #171512;
+  --panel: #201D1A;
+  --panel-2: #2A2622;
+  --line: #3A352F;
+  --ink: #EFE7D8;
+  --muted: #A39A8B;
+  --accent: #F2B230;
+  --accent-ink: #1B1305;
+  --danger: #E0573D;
+  --font-display: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.4;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding-top: 8px; }
+.logo { font-family: var(--font-display); font-weight: 800; font-size: 21px; letter-spacing: .02em; line-height: 1; }
+.logo i { font-style: normal; color: var(--accent); }
+.top-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: 8px 12px; font-weight: 600; font-size: 13px; line-height: 1.1; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.icon { padding: 8px 10px; font-size: 16px; }
+.btn.small { padding: 6px 10px; font-size: 12px; }
+select.btn { padding-right: 6px; }
+
+.work { min-height: 0; display: grid; gap: 10px; grid-template-rows: minmax(190px, 40%) minmax(0, 1fr); padding-bottom: 8px; }
+@media (min-width: 900px) { .work { grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: minmax(0, 1fr); } }
+
+.stage { position: relative; min-height: 0; min-width: 0; background: #0E0D0B; border: 1px solid var(--line); border-radius: 10px; display: grid; padding: 10px; }
+#view { width: 100%; height: 100%; object-fit: contain; display: block; min-height: 0; }
+.stage-bar { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; pointer-events: none; }
+.stage-bar > * { pointer-events: auto; }
+.badge { background: rgba(23, 21, 18, .86); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; color: var(--muted); max-width: 70%; }
+.hold { background: rgba(23, 21, 18, .86); user-select: none; touch-action: none; }
+.drop { position: absolute; inset: 0; border: 2px dashed var(--accent); border-radius: 10px; display: grid; place-items: center; background: rgba(23, 21, 18, .7); font-weight: 700; pointer-events: none; }
+
+.side { min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
+.histwrap { padding: 10px 12px 6px; display: grid; gap: 4px; }
+.histrow { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+#hist { width: 100%; height: 56px; background: #12100E; border-radius: 6px; display: block; }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.tab { border: 0; background: none; padding: 10px 2px; font-size: 12.5px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; }
+.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.panes { overflow-y: auto; min-height: 0; padding: 4px 12px 24px; }
+.pane { display: grid; gap: 12px; padding-top: 10px; align-content: start; }
+.h { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.h:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+
+.sl { display: grid; gap: 2px; }
+.sl-top { display: flex; justify-content: space-between; gap: 8px; }
+.sl-top label { font-size: 12.5px; color: var(--ink); }
+.sl-top output { font-family: var(--font-mono); font-size: 12px; color: var(--accent); min-width: 44px; text-align: right; cursor: pointer; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; margin: 0; }
+input[type="range"]::-webkit-slider-runnable-track { height: 3px; background: var(--line); border-radius: 2px; }
+input[type="range"]::-moz-range-track { height: 3px; background: var(--line); border-radius: 2px; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--ink); border: 0; margin-top: -6px; }
+input[type="range"]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--ink); border: 0; }
+input[type="range"].hue::-webkit-slider-runnable-track { background: linear-gradient(90deg, hsl(0,80%,55%), hsl(60,80%,55%), hsl(120,80%,55%), hsl(180,80%,55%), hsl(240,80%,55%), hsl(300,80%,55%), hsl(360,80%,55%)); }
+input[type="range"].hue::-moz-range-track { background: linear-gradient(90deg, hsl(0,80%,55%), hsl(60,80%,55%), hsl(120,80%,55%), hsl(180,80%,55%), hsl(240,80%,55%), hsl(300,80%,55%), hsl(360,80%,55%)); }
+@media (pointer: coarse) { input[type="range"] { height: 30px; } .btn { padding: 10px 12px; } .btn.small { padding: 8px 10px; } }
+
+.presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.pre { border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: 4px 4px 6px; display: grid; gap: 4px; text-align: center; }
+.pre canvas { width: 100%; aspect-ratio: 3 / 2; border-radius: 5px; display: block; background: #12100E; }
+.pre span { font-size: 11.5px; font-weight: 600; line-height: 1.15; }
+.pre[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.pre[aria-pressed="true"] span { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.band { width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 2px solid transparent; }
+.band[aria-pressed="true"] { border-color: var(--ink); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 12px; color: var(--muted); }
+.input { width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-family: var(--font-mono); }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.note { color: var(--muted); font-size: 12px; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; max-width: 92vw; text-align: center; }
+.busy { position: fixed; inset: 0; z-index: 50; background: rgba(23, 21, 18, .78); display: grid; place-items: center; font-weight: 700; font-family: var(--font-display); font-size: 18px; }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="logo" aria-label="NOCT titik RETRO">NOCT<i>.</i>RETRO</div>
+    <div class="top-actions">
+      <button class="btn icon" id="btnUndo" aria-label="Urungkan" title="Urungkan" disabled>&#8630;</button>
+      <button class="btn icon" id="btnRedo" aria-label="Ulangi" title="Ulangi" disabled>&#8631;</button>
+      <button class="btn" id="btnOpen">Buka foto</button>
+      <button class="btn" id="btnCam">Ambil foto</button>
+      <select class="btn" id="fmt" aria-label="Format simpan"><option value="jpg">JPG</option><option value="png">PNG</option></select>
+      <button class="btn primary" id="btnSave">Simpan</button>
+    </div>
+  </header>
+
+  <main class="work">
+    <section class="stage" id="stage" aria-label="Pratinjau foto">
+      <canvas id="view" width="16" height="16"></canvas>
+      <div class="stage-bar">
+        <div class="badge" id="sampleBadge">Foto contoh. Buka foto Anda, ambil foto baru, atau seret foto ke sini.</div>
+        <button class="btn small hold" id="btnHold">Tahan: lihat asli</button>
+      </div>
+      <div class="drop" id="drop" hidden>Lepas foto di sini</div>
+    </section>
+
+    <aside class="side">
+      <div class="histwrap">
+        <div class="histrow"><span>Histogram</span><span id="dims"></span></div>
+        <canvas id="hist" width="256" height="56"></canvas>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Panel penyuntingan">
+        <button class="tab" role="tab" data-tab="filter" aria-selected="true">Filter</button>
+        <button class="tab" role="tab" data-tab="light" aria-selected="false">Cahaya</button>
+        <button class="tab" role="tab" data-tab="color" aria-selected="false">Warna</button>
+        <button class="tab" role="tab" data-tab="fx" aria-selected="false">Efek</button>
+        <button class="tab" role="tab" data-tab="crop" aria-selected="false">Potong</button>
+      </div>
+      <div class="panes">
+        <div class="pane" id="pane-filter"></div>
+        <div class="pane" id="pane-light" hidden></div>
+        <div class="pane" id="pane-color" hidden></div>
+        <div class="pane" id="pane-fx" hidden></div>
+        <div class="pane" id="pane-crop" hidden></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<input type="file" id="fileIn" accept="image/*" hidden>
+<input type="file" id="camIn" accept="image/*" capture="environment" hidden>
+<div class="busy" id="busy" hidden><span id="busyText">Memproses…</span></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  function mk(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function tick() { return new Promise(function (r) { setTimeout(r, 30); }); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+
+  /* ---------- parameter ---------- */
+  var HC = [0, 30, 60, 120, 180, 225, 275, 320];
+  var BANDS = ['Merah', 'Oranye', 'Kuning', 'Hijau', 'Aqua', 'Biru', 'Ungu', 'Magenta'];
+  var DEF = { exp: 0, con: 0, hi: 0, sh: 0, wh: 0, bl: 0, cla: 0, temp: 0, tint: 0, vib: 0, sat: 0,
+    shHue: 210, shAmt: 0, hiHue: 40, hiAmt: 0, fade: 0, grain: 0, gsize: 1.5, vig: 0, hal: 0, leak: 0,
+    chR: 1, chG: 1, chB: 1, lfR: 0, lfG: 0, lfB: 0 };
+  var NOLERP = { shHue: 1, hiHue: 1, gsize: 1 };
+  function zeros() { var a = []; for (var i = 0; i < 8; i++) a.push([0, 0, 0]); return a; }
+  function stampDefault() {
+    var d = new Date(), p = function (n) { return ('0' + n).slice(-2); };
+    return "'" + p(d.getFullYear() % 100) + ' ' + p(d.getMonth() + 1) + ' ' + p(d.getDate());
+  }
+  function newParams() {
+    var o = {}; Object.keys(DEF).forEach(function (k) { o[k] = DEF[k]; });
+    o.hsl = zeros(); o.rot = 0; o.flipH = false; o.angle = 0; o.ratio = 'asli';
+    o.leakSide = 'kanan'; o.frame = 'none'; o.stamp = false; o.stampText = stampDefault();
+    return o;
+  }
+  var P = newParams();
+
+  var PRESETS = [
+    { id: 'asli', name: 'Asli', v: {} },
+    { id: 'kodak', cat: 'Film', name: 'Kodak Gold', v: { temp: 28, tint: 4, con: 14, sh: 12, hi: -10, vib: 10, sat: 6, fade: 6, shHue: 25, shAmt: 18, hiHue: 48, hiAmt: 22, grain: 28, vig: 18, chB: 1.06, lfR: 0.01 } },
+    { id: 'portra', cat: 'Film', name: 'Portra Lembut', v: { temp: 10, con: -8, sh: 20, hi: -12, wh: -5, bl: 10, sat: -8, vib: 12, fade: 10, shHue: 190, shAmt: 10, hiHue: 35, hiAmt: 14, grain: 14, vig: 8 } },
+    { id: 'fuji', cat: 'Film', name: 'Fuji Hijau', v: { temp: -6, tint: -10, con: 16, sat: 10, vib: 8, fade: 4, shHue: 170, shAmt: 22, hiHue: 320, hiAmt: 10, grain: 24, hal: 6, vig: 14, chG: 0.96 } },
+    { id: 'polaroid', cat: 'Instan', name: 'Polaroid 600', v: { temp: 8, tint: 6, con: -4, hi: -15, sh: 22, bl: 20, sat: -14, fade: 26, shHue: 195, shAmt: 22, hiHue: 45, hiAmt: 20, grain: 20, vig: 22, hal: 10 }, frame: 'polaroid' },
+    { id: 'lomo', cat: 'Film', name: 'Lomo', v: { con: 38, sat: 28, vib: 14, temp: 6, hi: -8, bl: -10, shHue: 260, shAmt: 18, hiHue: 60, hiAmt: 12, grain: 26, vig: 70, chR: 0.97 } },
+    { id: 'cross', cat: 'Film', name: 'Cross Process', v: { con: 30, sat: 18, temp: -4, tint: -8, fade: 6, shHue: 175, shAmt: 40, hiHue: 70, hiAmt: 35, grain: 20, vig: 18 } },
+    { id: 'sepia', cat: 'Antik', name: 'Sepia 1920', v: { sat: -100, con: 8, fade: 14, shHue: 28, shAmt: 90, hiHue: 42, hiAmt: 90, grain: 30, vig: 30 } },
+    { id: 'trix', cat: 'Hitam putih', name: 'Hitam Putih', v: { sat: -100, con: 30, bl: -10, wh: 10, cla: 25, grain: 55, gsize: 1.8, vig: 28 } },
+    { id: 'cine', cat: 'Sinematik', name: 'Cinestill 800T', v: { temp: -14, tint: -6, con: 12, hi: -12, sh: 12, sat: 8, vib: 10, shHue: 190, shAmt: 35, hiHue: 25, hiAmt: 20, hal: 60, grain: 32, gsize: 1.7, vig: 20 } },
+    { id: 'vhs', cat: 'Y2K', name: 'VHS 90an', v: { sat: -18, con: -6, fade: 16, temp: -8, tint: 10, shHue: 220, shAmt: 30, hiHue: 330, hiAmt: 22, grain: 45, gsize: 2.2, vig: 16, hal: 22 } },
+    { id: 'digicam', cat: 'Y2K', name: 'Digicam 2003', v: { con: 22, hi: 18, wh: 12, sat: 14, temp: -6, tint: -4, sh: 10, vig: 25, grain: 10, gsize: 1, hal: 10, shHue: 150, shAmt: 14 }, stamp: true },
+    { id: 'senja', cat: 'Film', name: 'Senja 70an', v: { temp: 36, tint: 10, con: 8, sat: 10, fade: 18, shHue: 15, shAmt: 35, hiHue: 45, hiAmt: 32, grain: 35, vig: 28, leak: 40, hal: 22 }, leakSide: 'kanan' },
+    { id: 'sekali', cat: 'Instan', name: 'Sekali Pakai', v: { con: 24, sat: 16, vib: 10, hi: 14, wh: 10, sh: 6, temp: 10, vig: 52, grain: 38, gsize: 1.8, leak: 30, hal: 18, shHue: 200, shAmt: 12 }, leakSide: 'kiri' },
+    { id: 'vapor', cat: 'Neon', name: 'Vaporwave', v: { sat: 28, vib: 20, con: 14, temp: -10, tint: 30, shHue: 275, shAmt: 45, hiHue: 175, hiAmt: 38, grain: 12, vig: 14, hal: 30 } },
+    /* Film */
+    { id: 'ultramax', cat: 'Film', name: 'Kodak Ultramax', v: { temp: 22, con: 18, sat: 18, vib: 12, fade: 4, shHue: 28, shAmt: 14, hiHue: 50, hiAmt: 16, grain: 26, vig: 14 } },
+    { id: 'ektar', cat: 'Film', name: 'Kodak Ektar', v: { con: 26, sat: 30, vib: 14, temp: 6, grain: 8, vig: 10 } },
+    { id: 'velvia', cat: 'Film', name: 'Fuji Velvia', v: { con: 30, sat: 38, vib: 10, temp: -2, hi: -6, sh: -6, grain: 10, vig: 16 }, hsl: [[3, 0, 30, 0], [5, 0, 20, 0]] },
+    { id: 'pro400h', cat: 'Film', name: 'Fuji 400H', v: { temp: -8, tint: -6, con: -6, sh: 16, hi: -14, sat: -6, vib: 10, fade: 8, shHue: 165, shAmt: 14, hiHue: 330, hiAmt: 8, grain: 14 } },
+    { id: 'agfa', cat: 'Film', name: 'Agfa Vista', v: { temp: 12, tint: 8, con: 16, sat: 14, fade: 6, shHue: 340, shAmt: 14, hiHue: 50, hiAmt: 14, grain: 30 } },
+    { id: 'lomopurple', cat: 'Film', name: 'Lomochrome Ungu', v: { tint: 40, temp: -18, con: 20, sat: 24, shHue: 290, shAmt: 40, hiHue: 330, hiAmt: 20, grain: 24, vig: 30 }, hsl: [[3, 100, 30, 0]] },
+    { id: 'cine50d', cat: 'Film', name: 'Cinestill 50D', v: { temp: 4, con: 10, sat: 12, hal: 24, grain: 14, hi: -10, vig: 10, shHue: 200, shAmt: 10 } },
+    { id: 'expired', cat: 'Film', name: 'Film Kadaluarsa', v: { fade: 26, sat: -14, temp: 14, tint: 10, con: -8, grain: 42, gsize: 2, vig: 30, shHue: 170, shAmt: 30, hiHue: 40, hiAmt: 24, leak: 28 }, leakSide: 'bawah' },
+    { id: 'vision3', cat: 'Film', name: 'Kodak Vision3', v: { temp: -10, shHue: 200, shAmt: 30, hiHue: 30, hiAmt: 20, con: 8, hal: 34, grain: 30, vig: 14 } },
+    { id: 'slide', cat: 'Film', name: 'Slide Film', v: { con: 28, sat: 24, bl: -8, wh: 6, vib: 6, grain: 6, vig: 12 } },
+    /* Hitam putih */
+    { id: 'hp5', cat: 'Hitam putih', name: 'Ilford HP5', v: { sat: -100, con: 18, grain: 48, gsize: 1.6, bl: -4, vig: 14 } },
+    { id: 'tmax', cat: 'Hitam putih', name: 'Kodak T-Max', v: { sat: -100, con: 22, cla: 18, grain: 18, wh: 6 } },
+    { id: 'noir', cat: 'Hitam putih', name: 'Noir Kontras', v: { sat: -100, con: 55, bl: -22, wh: 12, hi: -14, cla: 30, grain: 36, vig: 40 } },
+    { id: 'pudarbw', cat: 'Hitam putih', name: 'Abu Pudar', v: { sat: -100, con: -14, fade: 30, bl: 12, grain: 22, vig: 18 } },
+    { id: 'cyano', cat: 'Hitam putih', name: 'Cyanotype', v: { sat: -100, shHue: 215, shAmt: 85, hiHue: 190, hiAmt: 55, con: 12, fade: 10, grain: 14 } },
+    { id: 'selenium', cat: 'Hitam putih', name: 'Selenium', v: { sat: -100, shHue: 280, shAmt: 40, hiHue: 30, hiAmt: 20, con: 14, grain: 20, vig: 22 } },
+    { id: 'infra', cat: 'Hitam putih', name: 'Infrared', v: { sat: -100, con: 18, grain: 20, vig: 16 }, hsl: [[3, 0, 0, 100], [2, 0, 0, 80], [4, 0, 0, -60], [5, 0, 0, -100]] },
+    { id: 'sepiahangat', cat: 'Hitam putih', name: 'Sepia Hangat', v: { sat: -100, shHue: 30, shAmt: 60, hiHue: 45, hiAmt: 70, fade: 20, con: -4, grain: 24, vig: 22 } },
+    /* Instan */
+    { id: 'sx70', cat: 'Instan', name: 'Polaroid SX-70', v: { temp: 6, con: 8, fade: 22, sat: -6, shHue: 180, shAmt: 26, hiHue: 35, hiAmt: 18, grain: 16, vig: 26, hal: 10 }, frame: 'polaroid' },
+    { id: 'instaxmini', cat: 'Instan', name: 'Instax Mini', v: { temp: -4, con: 4, sat: 10, vib: 10, hi: -8, sh: 12, fade: 10, shHue: 190, shAmt: 12, hiHue: 340, hiAmt: 12, vig: 10 }, frame: 'polaroid' },
+    { id: 'polahijau', cat: 'Instan', name: 'Polaroid Hijau', v: { tint: -16, temp: -4, fade: 30, sat: -18, shHue: 150, shAmt: 30, hiHue: 90, hiAmt: 22, grain: 18, vig: 24 }, frame: 'polaroid' },
+    { id: 'instaxwide', cat: 'Instan', name: 'Instax Wide', v: { temp: 2, con: 10, sat: 14, fade: 12, vig: 12 }, frame: 'tipis' },
+    { id: 'albumlama', cat: 'Instan', name: 'Album Lama', v: { temp: 18, fade: 30, sat: -22, con: -8, shHue: 35, shAmt: 28, hiHue: 50, hiAmt: 24, grain: 34, vig: 34 }, frame: 'tipis' },
+    { id: 'minilab', cat: 'Instan', name: 'Cetak Kilat', v: { con: 14, sat: 12, temp: 8, hi: 10, grain: 14, vig: 8 }, frame: 'tipis' },
+    /* Sinematik */
+    { id: 'tealorange', cat: 'Sinematik', name: 'Teal & Orange', v: { temp: 8, con: 16, sat: 8, vib: 12, shHue: 195, shAmt: 40, hiHue: 30, hiAmt: 34 }, hsl: [[1, 0, 18, 0], [4, 0, 20, 0]] },
+    { id: 'neonoir', cat: 'Sinematik', name: 'Neo-Noir', v: { temp: -16, tint: 12, con: 26, sh: -8, bl: -14, sat: 6, shHue: 240, shAmt: 50, hiHue: 320, hiAmt: 36, hal: 40, vig: 40, grain: 16 } },
+    { id: 'western', cat: 'Sinematik', name: 'Western Debu', v: { temp: 34, tint: 6, con: 16, sat: -8, fade: 14, shHue: 20, shAmt: 22, hiHue: 45, hiAmt: 34, grain: 28, vig: 36, hal: 12 } },
+    { id: 'malam', cat: 'Sinematik', name: 'Malam Biru', v: { temp: -26, con: 24, exp: -0.3, sat: -30, shHue: 220, shAmt: 48, hiHue: 200, hiAmt: 20, vig: 44, grain: 28 } },
+    { id: 'matrix', cat: 'Sinematik', name: 'Matrix Hijau', v: { tint: -34, temp: -6, con: 22, sat: -10, shHue: 140, shAmt: 55, hiHue: 120, hiAmt: 38, grain: 22, vig: 24 } },
+    { id: 'goldenhr', cat: 'Sinematik', name: 'Golden Hour', v: { temp: 30, con: 14, hi: -12, sh: 14, vib: 14, hiHue: 42, hiAmt: 38, shHue: 20, shAmt: 18, hal: 30, vig: 18 } },
+    { id: 'thriller', cat: 'Sinematik', name: 'Thriller Dingin', v: { temp: -20, con: 20, sat: -22, shHue: 205, shAmt: 30, hiHue: 190, hiAmt: 14, grain: 20, vig: 34 } },
+    { id: 'romcom', cat: 'Sinematik', name: 'Romcom Hangat', v: { temp: 12, con: -6, sh: 18, hi: -12, vib: 14, fade: 8, hiHue: 350, hiAmt: 18, hal: 20, vig: 10 } },
+    { id: 'bleach', cat: 'Sinematik', name: 'Bleach Bypass', v: { sat: -45, con: 40, cla: 30, bl: -10, grain: 34, vig: 22, hi: -6 } },
+    /* Y2K */
+    { id: 'flash05', cat: 'Y2K', name: 'Blitz 2005', v: { exp: 0.15, con: 26, hi: 20, wh: 14, sat: 12, temp: -4, vig: 30, grain: 8, gsize: 1, hal: 12 }, stamp: true },
+    { id: 'webcam', cat: 'Y2K', name: 'Webcam 2008', v: { sat: -14, con: -4, temp: -8, tint: 8, grain: 50, gsize: 2.6, cla: -20, shHue: 210, shAmt: 16, vig: 14, hal: 8 } },
+    { id: 'minidv', cat: 'Y2K', name: 'Handycam MiniDV', v: { sat: -8, con: 8, fade: 12, temp: -4, grain: 40, gsize: 2, vig: 18, hal: 14 }, stamp: true },
+    { id: 'ccd', cat: 'Y2K', name: 'Kompak CCD', v: { temp: -6, tint: -4, con: 20, hi: 16, sat: 16, vib: 10, shHue: 180, shAmt: 18, hal: 16 }, stamp: true },
+    { id: 'crt', cat: 'Y2K', name: 'Layar CRT', v: { sat: 16, con: 18, temp: -4, shHue: 160, shAmt: 20, hiHue: 330, hiAmt: 16, grain: 30, gsize: 2.4, vig: 40, hal: 36 } },
+    /* Pastel */
+    { id: 'permen', cat: 'Pastel', name: 'Pastel Permen', v: { exp: 0.2, con: -14, sat: -6, vib: 24, fade: 20, bl: 20, shHue: 330, shAmt: 18, hiHue: 190, hiAmt: 14, grain: 6 } },
+    { id: 'peach', cat: 'Pastel', name: 'Peach Fuzz', v: { temp: 18, tint: 10, con: -10, sh: 22, exp: 0.15, sat: -4, vib: 14, fade: 14, hiHue: 25, hiAmt: 24, shHue: 350, shAmt: 14, hal: 14 } },
+    { id: 'mint', cat: 'Pastel', name: 'Mint Segar', v: { temp: -10, tint: -14, con: -8, fade: 16, vib: 16, sat: -4, shHue: 160, shAmt: 20, hiHue: 100, hiAmt: 14, bl: 14 } },
+    { id: 'lavender', cat: 'Pastel', name: 'Lavender Haze', v: { tint: 18, temp: -8, con: -8, fade: 20, sat: -6, vib: 18, shHue: 275, shAmt: 30, hiHue: 320, hiAmt: 22, hal: 22, bl: 16 } },
+    /* Neon */
+    { id: 'synthwave', cat: 'Neon', name: 'Synthwave', v: { sat: 36, vib: 20, con: 22, temp: -12, tint: 28, shHue: 285, shAmt: 55, hiHue: 330, hiAmt: 45, hal: 44, vig: 30, grain: 10 } },
+    { id: 'cyberpunk', cat: 'Neon', name: 'Cyberpunk', v: { temp: -14, tint: 20, con: 30, sat: 26, shHue: 200, shAmt: 50, hiHue: 320, hiAmt: 46, hal: 50, vig: 34, grain: 14 } },
+    { id: 'arcade', cat: 'Neon', name: 'Arcade Malam', v: { con: 24, sat: 34, temp: -10, tint: 18, bl: -10, shHue: 250, shAmt: 40, hiHue: 170, hiAmt: 34, hal: 36, vig: 36 } },
+    { id: 'miami', cat: 'Neon', name: 'Miami 80an', v: { temp: -6, tint: 24, sat: 30, con: 14, shHue: 190, shAmt: 34, hiHue: 330, hiAmt: 40, hal: 28 } },
+    /* Antik */
+    { id: 'dagu', cat: 'Antik', name: 'Daguerreotype', v: { sat: -100, con: 18, fade: 22, shHue: 215, shAmt: 30, hiHue: 45, hiAmt: 20, grain: 40, vig: 50, cla: 20 } },
+    { id: 'kartupos', cat: 'Antik', name: 'Kartu Pos 1910', v: { sat: -40, temp: 18, fade: 30, con: -6, shHue: 30, shAmt: 40, hiHue: 50, hiAmt: 40, grain: 28, vig: 36 }, frame: 'tipis' },
+    { id: 'koran', cat: 'Antik', name: 'Koran Tua', v: { sat: -100, fade: 34, con: -10, shHue: 45, shAmt: 35, hiHue: 55, hiAmt: 38, grain: 44, gsize: 2, vig: 30 } },
+    { id: 'kodachrome', cat: 'Antik', name: 'Kodachrome 64', v: { con: 22, sat: 24, temp: 14, vib: 8, hi: -6, shHue: 15, shAmt: 18, hiHue: 50, hiAmt: 14, grain: 14, vig: 14 }, hsl: [[0, 0, 20, 0], [2, 0, 10, 0]] }
+  ];
+  function presetById(id) { return PRESETS.filter(function (p) { return p.id === id; })[0] || PRESETS[0]; }
+  function presetParams(ps, k, keep) {
+    var np = newParams();
+    Object.keys(ps.v).forEach(function (key) {
+      np[key] = NOLERP[key] ? ps.v[key] : DEF[key] + (ps.v[key] - DEF[key]) * k;
+    });
+    if (ps.hsl) ps.hsl.forEach(function (e) { np.hsl[e[0]] = [e[1] * k, e[2] * k, e[3] * k]; });
+    if (keep) { ['rot', 'flipH', 'angle', 'ratio', 'stampText', 'leakSide'].forEach(function (key) { np[key] = keep[key]; }); }
+    np.frame = ps.frame || 'none';
+    np.stamp = !!ps.stamp;
+    if (ps.leakSide) np.leakSide = ps.leakSide;
+    return np;
+  }
+
+  /* ---------- blur kotak (untuk Kejernihan dan Halation) ---------- */
+  function boxH(s, t, w, h, r) {
+    var iarr = 1 / (r + r + 1);
+    for (var i = 0; i < h; i++) {
+      var ti = i * w, li = ti, ri = ti + r, fv = s[ti], lv = s[ti + w - 1], val = (r + 1) * fv, j;
+      for (j = 0; j < r; j++) val += s[ti + j];
+      for (j = 0; j <= r; j++) { val += s[ri++] - fv; t[ti++] = Math.round(val * iarr); }
+      for (j = r + 1; j < w - r; j++) { val += s[ri++] - s[li++]; t[ti++] = Math.round(val * iarr); }
+      for (j = w - r; j < w; j++) { val += lv - s[li++]; t[ti++] = Math.round(val * iarr); }
+    }
+  }
+  function boxT(s, t, w, h, r) {
+    var iarr = 1 / (r + r + 1);
+    for (var i = 0; i < w; i++) {
+      var ti = i, li = ti, ri = ti + r * w, fv = s[ti], lv = s[ti + w * (h - 1)], val = (r + 1) * fv, j;
+      for (j = 0; j < r; j++) val += s[ti + j * w];
+      for (j = 0; j <= r; j++) { val += s[ri] - fv; t[ti] = Math.round(val * iarr); ri += w; ti += w; }
+      for (j = r + 1; j < h - r; j++) { val += s[ri] - s[li]; t[ti] = Math.round(val * iarr); li += w; ri += w; ti += w; }
+      for (j = h - r; j < h; j++) { val += lv - s[li]; t[ti] = Math.round(val * iarr); li += w; ti += w; }
+    }
+  }
+  function blurPlane(plane, w, h, r) {
+    var a = plane, b = new Uint8Array(w * h);
+    for (var n = 0; n < 3; n++) { boxH(a, b, w, h, r); boxT(b, a, w, h, r); }
+    return a;
+  }
+  function blurRadius(longEdge) { return Math.max(1, Math.round(longEdge * 0.006)); }
+  function blurRGB(data, w, h, r) {
+    r = Math.max(1, Math.min(r, ((Math.min(w, h) / 2) | 0) - 1));
+    var N = w * h, pr = new Uint8Array(N), pg = new Uint8Array(N), pb = new Uint8Array(N);
+    for (var i = 0, p = 0; p < N; p++, i += 4) { pr[p] = data[i]; pg[p] = data[i + 1]; pb[p] = data[i + 2]; }
+    return { r: blurPlane(pr, w, h, r), g: blurPlane(pg, w, h, r), b: blurPlane(pb, w, h, r) };
+  }
+
+  /* ---------- inti pemrosesan piksel ---------- */
+  function buildLUTs(Q) {
+    var L = [new Uint8ClampedArray(256), new Uint8ClampedArray(256), new Uint8ClampedArray(256)];
+    var ev = Math.pow(2, Q.exp), b = -Q.bl / 100 * 0.10, w = 1 - Q.wh / 100 * 0.10;
+    var con = Q.con / 100, sh = Q.sh / 100, hi = Q.hi / 100, fade = Q.fade / 100 * 0.18;
+    var chs = [Q.chR, Q.chG, Q.chB], lfs = [Q.lfR, Q.lfG, Q.lfB];
+    for (var i = 0; i < 256; i++) {
+      var x = i / 255 * ev;
+      x = clamp((x - b) / (w - b), 0, 1);
+      x += sh * 0.30 * 6.75 * x * (1 - x) * (1 - x) + hi * 0.30 * 6.75 * x * x * (1 - x);
+      x = clamp(x, 0, 1);
+      if (con > 0) { var s = x * x * (3 - 2 * x); x = x + con * (s - x) * 1.3; }
+      else x = 0.5 + (x - 0.5) * (1 + 0.7 * con);
+      x = clamp(x, 0, 1);
+      x = fade + x * (1 - fade * 1.3);
+      for (var c = 0; c < 3; c++) {
+        var y = Math.pow(clamp(x, 0, 1), chs[c]) + lfs[c] * (1 - x);
+        L[c][i] = clamp(y, 0, 1) * 255;
+      }
+    }
+    return L;
+  }
+  function hueDelta(h) {
+    h = ((h % 360) + 360) % 360 / 60;
+    var x = 1 - Math.abs(h % 2 - 1), r, g, b;
+    if (h < 1) { r = 1; g = x; b = 0; } else if (h < 2) { r = x; g = 1; b = 0; } else if (h < 3) { r = 0; g = 1; b = x; }
+    else if (h < 4) { r = 0; g = x; b = 1; } else if (h < 5) { r = x; g = 0; b = 1; } else { r = 1; g = 0; b = x; }
+    var m = (r + g + b) / 3;
+    return [r - m, g - m, b - m];
+  }
+  function hash2(x, y) {
+    var h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+  function render(d, bl, W, H, Q, scale, o, hist) {
+    var lut = buildLUTs(Q), Lr = lut[0], Lg = lut[1], Lbl = lut[2];
+    var tr = 1 + Q.temp * 0.004, tb = 1 - Q.temp * 0.004, tg = 1 - Q.tint * 0.003;
+    var satK = 1 + Q.sat / 100, vib = Q.vib / 100, doSV = Q.sat !== 0 || Q.vib !== 0;
+    var hsOn = false, i, q;
+    for (q = 0; q < 8; q++) if (Q.hsl[q][0] || Q.hsl[q][1] || Q.hsl[q][2]) hsOn = true;
+    var shA = Q.shAmt / 100, hiA = Q.hiAmt / 100, doTone = shA > 0 || hiA > 0;
+    var shC = hueDelta(Q.shHue), hiC = hueDelta(Q.hiHue);
+    var cla = Q.cla / 100, hal = Q.hal / 100, leak = Q.leak / 100, vg = Q.vig / 100, gr = Q.grain / 100;
+    var cell = Math.max(1, Math.round(Q.gsize * scale));
+    var lpx = Q.leakSide === 'kiri' ? 0 : Q.leakSide === 'kanan' ? 1 : 0.5;
+    var lpy = Q.leakSide === 'atas' ? 0 : Q.leakSide === 'bawah' ? 1 : 0.5;
+    var nxArr = new Float32Array(W);
+    for (i = 0; i < W; i++) { var t = (i - W / 2) / (W / 2); nxArr[i] = t * t; }
+    var needBlur = cla !== 0 || hal > 0;
+    var p = 0, idx = 0;
+    for (var y = 0; y < H; y++) {
+      var ny = (y - H / 2) / (H / 2), ny2 = ny * ny;
+      for (var x = 0; x < W; x++, p++, idx += 4) {
+        var r = d[idx] * tr, g = d[idx + 1] * tg, b = d[idx + 2] * tb;
+        if (r > 255) r = 255; if (g > 255) g = 255; if (b > 255) b = 255;
+        r = Lr[r | 0]; g = Lg[g | 0]; b = Lbl[b | 0];
+        if (hsOn) {
+          var mx2 = r > g ? (r > b ? r : b) : (g > b ? g : b), mn2 = r < g ? (r < b ? r : b) : (g < b ? g : b), c2 = mx2 - mn2;
+          if (c2 > 6) {
+            var hh;
+            if (mx2 === r) hh = ((g - b) / c2) % 6; else if (mx2 === g) hh = (b - r) / c2 + 2; else hh = (r - g) / c2 + 4;
+            hh *= 60; if (hh < 0) hh += 360;
+            var dh = 0, ds = 0, dl = 0;
+            for (q = 0; q < 8; q++) {
+              var dd = Math.abs(hh - HC[q]); if (dd > 180) dd = 360 - dd;
+              if (dd < 45) { var wq = 1 - dd / 45; dh += wq * Q.hsl[q][0] * 0.3; ds += wq * Q.hsl[q][1] / 100; dl += wq * Q.hsl[q][2] / 100; }
+            }
+            var wc = c2 / 255 * 3; if (wc > 1) wc = 1;
+            if (dh !== 0) {
+              var a = dh * wc * 0.0174533, ca = Math.cos(a), sa = Math.sin(a);
+              var Y = 0.299 * r + 0.587 * g + 0.114 * b, I = 0.596 * r - 0.274 * g - 0.322 * b, Qq = 0.211 * r - 0.523 * g + 0.312 * b;
+              var I2 = I * ca - Qq * sa, Q2 = I * sa + Qq * ca;
+              r = Y + 0.956 * I2 + 0.621 * Q2; g = Y - 0.272 * I2 - 0.647 * Q2; b = Y - 1.106 * I2 + 1.703 * Q2;
+            }
+            if (ds !== 0) { var l2 = 0.2126 * r + 0.7152 * g + 0.0722 * b, ks = 1 + ds * wc; if (ks < 0) ks = 0; r = l2 + (r - l2) * ks; g = l2 + (g - l2) * ks; b = l2 + (b - l2) * ks; }
+            if (dl !== 0) { var km = 1 + dl * 0.5 * wc; r *= km; g *= km; b *= km; }
+          }
+        }
+        var l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        if (doSV) {
+          var mx = r > g ? (r > b ? r : b) : (g > b ? g : b), mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+          var k = satK * (1 + vib * (1 - (mx - mn) / 255)); if (k < 0) k = 0;
+          r = l + (r - l) * k; g = l + (g - l) * k; b = l + (b - l) * k;
+        }
+        if (doTone) {
+          var ln = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; if (ln < 0) ln = 0; else if (ln > 1) ln = 1;
+          var ws = (1 - ln) * (1 - ln) * shA, wh2 = ln * ln * hiA;
+          r += 102 * (shC[0] * ws + hiC[0] * wh2); g += 102 * (shC[1] * ws + hiC[1] * wh2); b += 102 * (shC[2] * ws + hiC[2] * wh2);
+        }
+        if (needBlur) {
+          var Lb = 0.2126 * bl.r[p] + 0.7152 * bl.g[p] + 0.0722 * bl.b[p];
+          if (cla !== 0) {
+            var Ls = 0.2126 * d[idx] + 0.7152 * d[idx + 1] + 0.0722 * d[idx + 2];
+            var lc = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255, mid = 1 - (2 * lc - 1) * (2 * lc - 1); if (mid < 0) mid = 0;
+            var add = cla * 1.2 * (Ls - Lb) * mid; r += add; g += add; b += add;
+          }
+          if (hal > 0) {
+            var th = (Lb / 255 - 0.5) / 0.45;
+            if (th > 0) { if (th > 1) th = 1; th = th * th * (3 - 2 * th); var ha = hal * th; r += 140 * ha; g += 51 * ha; b += 20 * ha; }
+          }
+        }
+        if (leak > 0) {
+          var ex = x / W - lpx, ey = y / H - lpy, dist = Math.sqrt(ex * ex + ey * ey), m = 1 - dist / 0.8;
+          if (m > 0) {
+            m = m * m * leak;
+            var ar = m * 0.95, ag = m * 0.38 * (1 - dist / 1.2), ab = m * 0.12; if (ag < 0) ag = 0;
+            r = 255 - (255 - r) * (1 - ar); g = 255 - (255 - g) * (1 - ag); b = 255 - (255 - b) * (1 - ab);
+          }
+        }
+        if (vg !== 0) {
+          var nd = Math.sqrt(nxArr[x] + ny2) * 0.7071, v = (nd - 0.35) / 0.65;
+          if (v > 0) {
+            if (v > 1) v = 1; v = v * v * (3 - 2 * v);
+            if (vg > 0) { var mul = 1 - vg * 0.85 * v; r *= mul; g *= mul; b *= mul; }
+            else { var lf = -vg * 0.6 * v; r += (255 - r) * lf; g += (255 - g) * lf; b += (255 - b) * lf; }
+          }
+        }
+        if (gr > 0) {
+          var n = hash2((x / cell) | 0, (y / cell) | 0) - 0.5;
+          var lm = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255, mm = 0.35 + 0.65 * (1 - (2 * lm - 1) * (2 * lm - 1));
+          var gv = n * gr * 70 * mm; r += gv; g += gv; b += gv;
+        }
+        if (r < 0) r = 0; else if (r > 255) r = 255;
+        if (g < 0) g = 0; else if (g > 255) g = 255;
+        if (b < 0) b = 0; else if (b > 255) b = 255;
+        o[idx] = r; o[idx + 1] = g; o[idx + 2] = b; o[idx + 3] = 255;
+        if (hist && (x & 3) === 0) { hist[r | 0]++; hist[256 + (g | 0)]++; hist[512 + (b | 0)]++; }
+      }
+    }
+  }
+
+  /* ---------- geometri: putar, balik, luruskan, potong ---------- */
+  var RATIOS = { '1:1': 1, '4:5': 0.8, '5:4': 1.25, '3:2': 1.5, '2:3': 2 / 3, '16:9': 16 / 9, '9:16': 9 / 16 };
+  function buildBase(src, sw, sh, Q, maxDim) {
+    var rot = ((Q.rot % 4) + 4) % 4, tw0 = rot % 2 ? sh : sw, th0 = rot % 2 ? sw : sh;
+    var sc = Math.min(1, maxDim / Math.max(tw0, th0));
+    var tw = Math.max(1, Math.round(tw0 * sc)), th = Math.max(1, Math.round(th0 * sc));
+    var T = mk(tw, th), c = T.getContext('2d');
+    c.imageSmoothingQuality = 'high';
+    c.translate(tw / 2, th / 2);
+    if (Q.flipH) c.scale(-1, 1);
+    c.rotate(rot * Math.PI / 2);
+    c.drawImage(src, -sw * sc / 2, -sh * sc / 2, sw * sc, sh * sc);
+    var cw = tw, ch = th, ra = RATIOS[Q.ratio];
+    if (ra) { if (cw / ch > ra) cw = ch * ra; else ch = cw / ra; }
+    var an = Q.angle * Math.PI / 180, co = Math.abs(Math.cos(an)), si = Math.abs(Math.sin(an));
+    var f = Math.min(1, tw / (cw * co + ch * si), th / (cw * si + ch * co));
+    cw = Math.max(1, Math.round(cw * f)); ch = Math.max(1, Math.round(ch * f));
+    var O = mk(cw, ch), o = O.getContext('2d', { willReadFrequently: true });
+    o.imageSmoothingQuality = 'high';
+    o.translate(cw / 2, ch / 2); o.rotate(an);
+    o.drawImage(T, -tw / 2, -th / 2);
+    return O;
+  }
+
+  /* ---------- bingkai dan cap tanggal ---------- */
+  function frameSpec(W, H, fr) {
+    var m = Math.min(W, H), s;
+    if (fr === 'tipis') { s = Math.round(m * 0.035); return { l: s, t: s, r: s, b: s, c: '#F3EEE2' }; }
+    if (fr === 'polaroid') { s = Math.round(m * 0.06); return { l: s, t: s, r: s, b: Math.round(m * 0.2), c: '#F3EEE2' }; }
+    if (fr === 'hitam') { s = Math.round(m * 0.04); return { l: s, t: s, r: s, b: s, c: '#0C0B0A' }; }
+    return null;
+  }
+  function drawStamp(ctx, W, H, Q) {
+    if (!Q.stamp || !Q.stampText) return;
+    var fs = Math.max(10, Math.round(Math.max(W, H) * 0.032));
+    ctx.save();
+    ctx.font = '500 ' + fs + 'px "DM Mono", ui-monospace, Menlo, monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#FF8A1F'; ctx.shadowColor = 'rgba(255,110,0,0.75)'; ctx.shadowBlur = fs * 0.35;
+    ctx.fillText(Q.stampText, W - fs * 1.1, H - fs * 1.1);
+    ctx.restore();
+  }
+  function composeInto(dst, work, Q) {
+    var W = work.width, H = work.height, fs = frameSpec(W, H, Q.frame);
+    var dw = fs ? W + fs.l + fs.r : W, dh = fs ? H + fs.t + fs.b : H;
+    if (dst.width !== dw) dst.width = dw;
+    if (dst.height !== dh) dst.height = dh;
+    var x = dst.getContext('2d');
+    if (fs) { x.fillStyle = fs.c; x.fillRect(0, 0, dw, dh); x.drawImage(work, fs.l, fs.t); }
+    else x.drawImage(work, 0, 0);
+  }
+
+  /* ---------- foto contoh ---------- */
+  function sampleCanvas() {
+    var W = 1600, H = 1067, c = mk(W, H), x = c.getContext('2d');
+    var g = x.createLinearGradient(0, 0, 0, H * 0.62);
+    g.addColorStop(0, '#2D4F8E'); g.addColorStop(0.45, '#7AA0C8'); g.addColorStop(0.78, '#F4B27A'); g.addColorStop(1, '#FFD9A6');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    var sx = W * 0.62, sy = H * 0.52, rg = x.createRadialGradient(sx, sy, 0, sx, sy, H * 0.5);
+    rg.addColorStop(0, 'rgba(255,248,220,1)'); rg.addColorStop(0.08, 'rgba(255,236,190,0.95)'); rg.addColorStop(0.3, 'rgba(255,190,120,0.35)'); rg.addColorStop(1, 'rgba(255,160,90,0)');
+    x.fillStyle = rg; x.fillRect(0, 0, W, H * 0.62);
+    x.fillStyle = 'rgba(255,255,255,0.22)';
+    [[0.2, 0.16, 260, 26], [0.34, 0.22, 200, 18], [0.78, 0.12, 300, 24], [0.9, 0.26, 180, 14]].forEach(function (cl) {
+      x.beginPath(); x.ellipse(W * cl[0], H * cl[1], cl[2], cl[3], 0, 0, 6.2832); x.fill();
+    });
+    function ridge(baseY, amp, color, seed, fq) {
+      x.fillStyle = color; x.beginPath(); x.moveTo(0, H * 0.64);
+      for (var i = 0; i <= W; i += 4) {
+        var yy = baseY - amp * (0.5 + 0.28 * Math.sin(i * fq + seed) + 0.17 * Math.sin(i * fq * 2.7 + seed * 1.9) + 0.1 * Math.sin(i * fq * 6.1 + seed * 0.4));
+        x.lineTo(i, yy);
+      }
+      x.lineTo(W, H * 0.64); x.closePath(); x.fill();
+    }
+    ridge(H * 0.56, H * 0.16, '#B98A8F', 1.2, 0.004);
+    ridge(H * 0.6, H * 0.13, '#7E6A8C', 3.4, 0.006);
+    ridge(H * 0.64, H * 0.09, '#46435F', 5.1, 0.008);
+    var sg = x.createLinearGradient(0, H * 0.64, 0, H);
+    sg.addColorStop(0, '#E9A06C'); sg.addColorStop(0.3, '#7A82A8'); sg.addColorStop(1, '#1F2F55');
+    x.fillStyle = sg; x.fillRect(0, H * 0.64, W, H * 0.36);
+    for (var k = 0; k < 120; k++) {
+      var ly = H * 0.65 + k * (H * 0.3 / 120), lw = (1 - k / 140) * 150 * (0.6 + 0.4 * Math.sin(k * 1.7));
+      x.fillStyle = 'rgba(255,225,170,' + (0.55 * (1 - k / 120)).toFixed(3) + ')';
+      x.fillRect(sx - lw / 2 + Math.sin(k * 0.9) * 14, ly, lw, 2.4);
+    }
+    x.fillStyle = '#1A1B2E';
+    x.beginPath(); x.moveTo(W * 0.36, H * 0.745); x.lineTo(W * 0.44, H * 0.745); x.lineTo(W * 0.425, H * 0.77); x.lineTo(W * 0.375, H * 0.77); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(W * 0.402, H * 0.74); x.lineTo(W * 0.402, H * 0.66); x.lineTo(W * 0.43, H * 0.74); x.closePath(); x.fill();
+    x.strokeStyle = '#14131F'; x.lineCap = 'round'; x.lineWidth = 16;
+    x.beginPath(); x.moveTo(W * 0.09, H); x.quadraticCurveTo(W * 0.13, H * 0.78, W * 0.12, H * 0.5); x.stroke();
+    x.lineWidth = 7;
+    for (var f = 0; f < 7; f++) {
+      var ang = -2.6 + f * 0.62;
+      x.beginPath(); x.moveTo(W * 0.12, H * 0.5);
+      x.quadraticCurveTo(W * 0.12 + Math.cos(ang) * 130, H * 0.5 + Math.sin(ang) * 90 - 30, W * 0.12 + Math.cos(ang) * 230, H * 0.5 + Math.sin(ang) * 190 + 50);
+      x.stroke();
+    }
+    return c;
+  }
+
+  /* ---------- keadaan ---------- */
+  var ST = { src: null, sw: 0, sh: 0, sample: true, base: null, bw: 0, bh: 0, bscale: 1, baseData: null, blur: null, outData: null,
+    work: null, wctx: null, hist: new Uint32Array(768), preset: 'asli', cat: 'Semua', strength: 100, band: 0, tab: 'filter', raf: 0, geoDirty: false, compare: false, thumbT: 0 };
+  var dl = null, toastT = 0;
+
+  function toast(t) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { el.hidden = true; }, 2800); }
+  function setBusy(on, text) { $('busy').hidden = !on; if (text) $('busyText').textContent = text; }
+  function geoKey(Q) { return [Q.rot, Q.flipH, Q.angle, Q.ratio].join('|'); }
+
+  function rebuildBase() {
+    var base = buildBase(ST.src, ST.sw, ST.sh, P, 1400);
+    ST.base = base; ST.bw = base.width; ST.bh = base.height;
+    ST.baseData = base.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, ST.bw, ST.bh);
+    ST.blur = blurRGB(ST.baseData.data, ST.bw, ST.bh, blurRadius(Math.max(ST.bw, ST.bh)));
+    ST.outData = new ImageData(ST.bw, ST.bh);
+    ST.work = mk(ST.bw, ST.bh); ST.wctx = ST.work.getContext('2d');
+    ST.bscale = Math.max(ST.bw, ST.bh) / 1400;
+    $('dims').textContent = ST.sw + ' × ' + ST.sh;
+  }
+  function renderNow() {
+    if (ST.geoDirty) { ST.geoDirty = false; rebuildBase(); }
+    if (!ST.base) return;
+    var view = $('view');
+    if (ST.compare) {
+      if (view.width !== ST.bw) view.width = ST.bw; if (view.height !== ST.bh) view.height = ST.bh;
+      view.getContext('2d').drawImage(ST.base, 0, 0);
+      return;
+    }
+    ST.hist.fill(0);
+    render(ST.baseData.data, ST.blur, ST.bw, ST.bh, P, ST.bscale, ST.outData.data, ST.hist);
+    ST.wctx.putImageData(ST.outData, 0, 0);
+    drawStamp(ST.wctx, ST.bw, ST.bh, P);
+    composeInto(view, ST.work, P);
+    drawHist();
+  }
+  function schedule() { if (ST.raf) return; ST.raf = requestAnimationFrame(function () { ST.raf = 0; renderNow(); }); }
+
+  function drawHist() {
+    var c = $('hist'), x = c.getContext('2d'), w = c.width, h = c.height, H = ST.hist, i, ch, max = 1;
+    x.clearRect(0, 0, w, h);
+    for (i = 1; i < 255; i++) for (ch = 0; ch < 3; ch++) if (H[ch * 256 + i] > max) max = H[ch * 256 + i];
+    x.globalCompositeOperation = 'lighter';
+    var cols = ['rgba(235,70,60,0.85)', 'rgba(70,200,90,0.85)', 'rgba(70,120,240,0.85)'];
+    for (ch = 0; ch < 3; ch++) {
+      x.fillStyle = cols[ch]; x.beginPath(); x.moveTo(0, h);
+      for (i = 0; i < 256; i++) x.lineTo(i * w / 255, h - Math.min(1, H[ch * 256 + i] / max) * (h - 2));
+      x.lineTo(w, h); x.closePath(); x.fill();
+    }
+    x.globalCompositeOperation = 'source-over';
+  }
+
+  /* ---------- miniatur filter ---------- */
+  var THUMB = {};
+  function buildThumbs() {
+    if (!ST.base) return;
+    var tw = 96, th = 64, tc = mk(tw, th), tx = tc.getContext('2d', { willReadFrequently: true });
+    var bw = ST.bw, bh = ST.bh, r = tw / th, sw = bw, sh = bw / r;
+    if (sh > bh) { sh = bh; sw = bh * r; }
+    tx.imageSmoothingQuality = 'high';
+    tx.drawImage(ST.base, (bw - sw) / 2, (bh - sh) / 2, sw, sh, 0, 0, tw, th);
+    var id = tx.getImageData(0, 0, tw, th), bl = blurRGB(id.data, tw, th, 1);
+    PRESETS.forEach(function (ps) {
+      var out = new ImageData(tw, th);
+      render(id.data, bl, tw, th, presetParams(ps, 1, null), tw / 1400, out.data, null);
+      THUMB[ps.id].getContext('2d').putImageData(out, 0, 0);
+    });
+  }
+  function scheduleThumbs() { clearTimeout(ST.thumbT); ST.thumbT = setTimeout(function () { try { buildThumbs(); } catch (e) {} }, 220); }
+
+  /* ---------- riwayat ---------- */
+  var HIST = [], HI = -1;
+  function snap() { return JSON.stringify({ P: P, preset: ST.preset, strength: ST.strength }); }
+  function updateUndo() { $('btnUndo').disabled = HI <= 0; $('btnRedo').disabled = HI >= HIST.length - 1; }
+  function commit() {
+    var s = snap(); if (HIST[HI] === s) return;
+    HIST = HIST.slice(0, HI + 1); HIST.push(s); if (HIST.length > 60) HIST.shift();
+    HI = HIST.length - 1; updateUndo();
+  }
+  function restore(s) {
+    var o = JSON.parse(s), changed = geoKey(o.P) !== geoKey(P);
+    P = o.P; ST.preset = o.preset; ST.strength = o.strength;
+    if (changed) ST.geoDirty = true;
+    syncUI(); renderNow(); scheduleThumbs(); updateUndo();
+  }
+  function undo() { if (HI > 0) { HI--; restore(HIST[HI]); } }
+  function redo() { if (HI < HIST.length - 1) { HI++; restore(HIST[HI]); } }
+
+  /* ---------- antarmuka ---------- */
+  var DEFS = {
+    exp: { l: 'Eksposur', min: -3, max: 3, step: 0.05 }, con: { l: 'Kontras' }, hi: { l: 'Highlight' }, sh: { l: 'Bayangan' }, wh: { l: 'Putih' }, bl: { l: 'Hitam' }, cla: { l: 'Kejernihan' },
+    temp: { l: 'Suhu warna' }, tint: { l: 'Tint' }, vib: { l: 'Vibrance' }, sat: { l: 'Saturasi' },
+    shHue: { l: 'Warna bayangan', min: 0, max: 360, hue: 1 }, shAmt: { l: 'Jumlah bayangan', min: 0, max: 100 },
+    hiHue: { l: 'Warna highlight', min: 0, max: 360, hue: 1 }, hiAmt: { l: 'Jumlah highlight', min: 0, max: 100 },
+    fade: { l: 'Pudar', min: 0, max: 100 }, grain: { l: 'Butiran film', min: 0, max: 100 }, gsize: { l: 'Ukuran butiran', min: 1, max: 4, step: 0.1 },
+    vig: { l: 'Vinyet' }, hal: { l: 'Halation', min: 0, max: 100 }, leak: { l: 'Kebocoran cahaya', min: 0, max: 100 },
+    angle: { l: 'Luruskan', min: -15, max: 15, step: 0.1 }
+  };
+  var GEOK = { angle: 1 };
+  var SLS = {};
+  function fmtVal(k, v) {
+    var d = DEFS[k];
+    if (k === 'exp') return (v > 0 ? '+' : '') + Number(v).toFixed(2);
+    if (d && d.hue) return Math.round(v) + '°';
+    if (k === 'angle') return Number(v).toFixed(1) + '°';
+    if (k === 'gsize') return Number(v).toFixed(1);
+    var s = Math.round(v);
+    return (d && d.min === 0) ? String(s) : (s > 0 ? '+' + s : String(s));
+  }
+  function addHead(host, t) { var h = document.createElement('div'); h.className = 'h'; h.textContent = t; host.appendChild(h); }
+  function addSlider(host, k) {
+    var d = DEFS[k], w = document.createElement('div'); w.className = 'sl';
+    var min = d.min !== undefined ? d.min : -100, max = d.max !== undefined ? d.max : 100, step = d.step || 1;
+    w.innerHTML = '<div class="sl-top"><label for="s_' + k + '">' + d.l + '</label><output id="o_' + k + '" title="Klik untuk atur ulang"></output></div>' +
+      '<input type="range" id="s_' + k + '" min="' + min + '" max="' + max + '" step="' + step + '"' + (d.hue ? ' class="hue"' : '') + '>';
+    host.appendChild(w);
+    var inp = w.querySelector('input'), out = w.querySelector('output');
+    SLS[k] = { input: inp, out: out };
+    inp.addEventListener('input', function () {
+      P[k] = Number(inp.value); out.textContent = fmtVal(k, P[k]);
+      if (GEOK[k]) ST.geoDirty = true;
+      schedule();
+    });
+    inp.addEventListener('change', function () { commit(); scheduleThumbs(); });
+    function reset() { P[k] = DEF[k] !== undefined ? DEF[k] : 0; inp.value = P[k]; out.textContent = fmtVal(k, P[k]); if (GEOK[k]) ST.geoDirty = true; schedule(); commit(); }
+    out.addEventListener('click', reset);
+    inp.addEventListener('dblclick', reset);
+  }
+  function addChips(host, items, get, set, cls) {
+    var row = document.createElement('div'); row.className = 'chips'; host.appendChild(row);
+    var btns = [];
+    items.forEach(function (it) {
+      var b = document.createElement('button'); b.className = 'chip'; b.textContent = it[1]; b.type = 'button';
+      b.addEventListener('click', function () { set(it[0]); sync(); commit(); });
+      row.appendChild(b); btns.push([b, it[0]]);
+    });
+    function sync() { btns.forEach(function (p) { p[0].setAttribute('aria-pressed', get() === p[1] ? 'true' : 'false'); }); }
+    sync(); return sync;
+  }
+
+  var syncers = [];
+  function buildUI() {
+    var f = $('pane-filter'), li = $('pane-light'), co = $('pane-color'), fx = $('pane-fx'), cr = $('pane-crop');
+    addHead(f, 'Filter retro \u00B7 ' + PRESETS.length);
+    var CATS = ['Semua', 'Film', 'Hitam putih', 'Instan', 'Sinematik', 'Y2K', 'Pastel', 'Neon', 'Antik'];
+    syncers.push(addChips(f, CATS.map(function (c) { return [c, c]; }), function () { return ST.cat; }, function (v) { ST.cat = v; applyCat(); }));
+    var grid = document.createElement('div'); grid.className = 'presets'; f.appendChild(grid);
+    PRESETS.forEach(function (ps) {
+      var b = document.createElement('button'); b.className = 'pre'; b.type = 'button'; b.dataset.p = ps.id; b.setAttribute('aria-pressed', 'false');
+      var c = mk(96, 64); THUMB[ps.id] = c; b.appendChild(c);
+      var s = document.createElement('span'); s.textContent = ps.name; b.appendChild(s);
+      b.addEventListener('click', function () { choosePreset(ps.id); });
+      grid.appendChild(b);
+    });
+    var sw = document.createElement('div'); sw.className = 'sl'; sw.innerHTML = '<div class="sl-top"><label for="s_strength">Kekuatan filter</label><output id="o_strength">100</output></div><input type="range" id="s_strength" min="0" max="100" step="1" value="100">';
+    f.appendChild(sw);
+    $('s_strength').addEventListener('input', function () {
+      ST.strength = Number(this.value); $('o_strength').textContent = ST.strength;
+      var keep = P; P = presetParams(presetById(ST.preset), ST.strength / 100, keep); syncUI(); schedule();
+    });
+    $('s_strength').addEventListener('change', function () { commit(); });
+    var nf = document.createElement('p'); nf.className = 'note'; nf.textContent = 'Menggeser kekuatan filter mengulang pengaturan dari filter yang dipilih. Slider lain bisa Anda atur sesudahnya.'; f.appendChild(nf);
+
+    addHead(li, 'Cahaya'); ['exp', 'con', 'hi', 'sh', 'wh', 'bl'].forEach(function (k) { addSlider(li, k); });
+    addHead(li, 'Kehadiran'); addSlider(li, 'cla');
+
+    addHead(co, 'Warna'); ['temp', 'tint', 'vib', 'sat'].forEach(function (k) { addSlider(co, k); });
+    addHead(co, 'Color grading'); ['shHue', 'shAmt', 'hiHue', 'hiAmt'].forEach(function (k) { addSlider(co, k); });
+    addHead(co, 'HSL per warna');
+    var bandRow = document.createElement('div'); bandRow.className = 'row'; co.appendChild(bandRow);
+    var bandBtns = [];
+    BANDS.forEach(function (n, i) {
+      var b = document.createElement('button'); b.className = 'chip band'; b.type = 'button'; b.title = n; b.setAttribute('aria-label', n);
+      b.style.background = 'hsl(' + HC[i] + ',80%,52%)';
+      b.addEventListener('click', function () { ST.band = i; syncUI(); });
+      bandRow.appendChild(b); bandBtns.push(b);
+    });
+    var bandName = document.createElement('div'); bandName.className = 'note'; co.appendChild(bandName);
+    [['Hue', 0], ['Saturasi', 1], ['Luminans', 2]].forEach(function (it) {
+      var w = document.createElement('div'); w.className = 'sl';
+      w.innerHTML = '<div class="sl-top"><label for="hsl' + it[1] + '">' + it[0] + '</label><output id="hslo' + it[1] + '" title="Klik untuk atur ulang">0</output></div><input type="range" id="hsl' + it[1] + '" min="-100" max="100" step="1" value="0">';
+      co.appendChild(w);
+      var inp = w.querySelector('input'), out = w.querySelector('output');
+      inp.addEventListener('input', function () { P.hsl[ST.band][it[1]] = Number(inp.value); out.textContent = fmtVal('x', P.hsl[ST.band][it[1]]); schedule(); });
+      inp.addEventListener('change', function () { commit(); scheduleThumbs(); });
+      out.addEventListener('click', function () { P.hsl[ST.band][it[1]] = 0; inp.value = 0; out.textContent = '0'; schedule(); commit(); });
+    });
+    syncers.push(function () {
+      bandBtns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === ST.band ? 'true' : 'false'); });
+      bandName.textContent = 'Warna terpilih: ' + BANDS[ST.band];
+      for (var j = 0; j < 3; j++) { $('hsl' + j).value = P.hsl[ST.band][j]; $('hslo' + j).textContent = fmtVal('x', P.hsl[ST.band][j]); }
+    });
+
+    addHead(fx, 'Film'); ['fade', 'grain', 'gsize', 'vig', 'hal'].forEach(function (k) { addSlider(fx, k); });
+    addHead(fx, 'Kebocoran cahaya'); addSlider(fx, 'leak');
+    syncers.push(addChips(fx, [['kiri', 'Kiri'], ['kanan', 'Kanan'], ['atas', 'Atas'], ['bawah', 'Bawah']], function () { return P.leakSide; }, function (v) { P.leakSide = v; schedule(); }));
+    addHead(fx, 'Bingkai');
+    syncers.push(addChips(fx, [['none', 'Tanpa'], ['tipis', 'Putih tipis'], ['polaroid', 'Polaroid'], ['hitam', 'Hitam']], function () { return P.frame; }, function (v) { P.frame = v; schedule(); }));
+    addHead(fx, 'Cap tanggal');
+    var st = document.createElement('div'); st.className = 'field';
+    st.innerHTML = '<label class="check"><input type="checkbox" id="stampOn"> Tampilkan cap tanggal oranye</label><label for="stampText">Teks cap</label><input class="input" id="stampText" maxlength="20" autocomplete="off">';
+    fx.appendChild(st);
+    $('stampOn').addEventListener('change', function () { P.stamp = this.checked; schedule(); commit(); });
+    $('stampText').addEventListener('input', function () { P.stampText = this.value; schedule(); });
+    $('stampText').addEventListener('change', function () { commit(); });
+
+    addHead(cr, 'Putar dan balik');
+    var rr = document.createElement('div'); rr.className = 'row'; cr.appendChild(rr);
+    [['Putar kiri', function () { P.rot = (P.rot + 3) % 4; }], ['Putar kanan', function () { P.rot = (P.rot + 1) % 4; }], ['Balik', function () { P.flipH = !P.flipH; }]].forEach(function (it) {
+      var b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = it[0];
+      b.addEventListener('click', function () { it[1](); ST.geoDirty = true; renderNow(); scheduleThumbs(); commit(); });
+      rr.appendChild(b);
+    });
+    addSlider(cr, 'angle');
+    addHead(cr, 'Rasio potong');
+    syncers.push(addChips(cr, [['asli', 'Asli'], ['1:1', '1:1'], ['4:5', '4:5'], ['5:4', '5:4'], ['3:2', '3:2'], ['2:3', '2:3'], ['16:9', '16:9'], ['9:16', '9:16']],
+      function () { return P.ratio; }, function (v) { P.ratio = v; ST.geoDirty = true; renderNow(); scheduleThumbs(); }));
+    addHead(cr, 'Atur ulang');
+    var rs = document.createElement('div'); rs.className = 'row'; cr.appendChild(rs);
+    var b1 = document.createElement('button'); b1.className = 'btn'; b1.type = 'button'; b1.textContent = 'Atur ulang potongan';
+    b1.addEventListener('click', function () { P.rot = 0; P.flipH = false; P.angle = 0; P.ratio = 'asli'; ST.geoDirty = true; syncUI(); renderNow(); scheduleThumbs(); commit(); });
+    var b2 = document.createElement('button'); b2.className = 'btn'; b2.type = 'button'; b2.textContent = 'Atur ulang semua penyesuaian';
+    b2.addEventListener('click', function () { choosePreset('asli'); toast('Semua penyesuaian dikembalikan'); });
+    rs.appendChild(b1); rs.appendChild(b2);
+  }
+  function applyCat() {
+    Array.prototype.forEach.call(document.querySelectorAll('.pre'), function (b) {
+      var ps = presetById(b.dataset.p);
+      b.hidden = !(ST.cat === 'Semua' || ps.id === 'asli' || ps.cat === ST.cat);
+    });
+  }
+  function syncUI() {
+    Object.keys(SLS).forEach(function (k) { SLS[k].input.value = P[k]; SLS[k].out.textContent = fmtVal(k, P[k]); });
+    syncers.forEach(function (fn) { fn(); });
+    $('stampOn').checked = !!P.stamp; $('stampText').value = P.stampText;
+    $('s_strength').value = ST.strength; $('o_strength').textContent = ST.strength; $('s_strength').disabled = ST.preset === 'asli';
+    Array.prototype.forEach.call(document.querySelectorAll('.pre'), function (b) { b.setAttribute('aria-pressed', b.dataset.p === ST.preset ? 'true' : 'false'); });
+  }
+  function choosePreset(id) {
+    ST.preset = id; ST.strength = 100;
+    P = presetParams(presetById(id), 1, P);
+    syncUI(); renderNow(); commit();
+  }
+  function setTab(t) {
+    ST.tab = t;
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) { b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
+    ['filter', 'light', 'color', 'fx', 'crop'].forEach(function (n) { $('pane-' + n).hidden = n !== t; });
+  }
+
+  /* ---------- memuat foto ---------- */
+  function setSource(src, w, h, sample) {
+    ST.src = src; ST.sw = w; ST.sh = h; ST.sample = sample;
+    P.rot = 0; P.flipH = false; P.angle = 0; P.ratio = 'asli';
+    rebuildBase(); ST.geoDirty = false;
+    $('sampleBadge').hidden = !sample;
+    syncUI(); renderNow(); scheduleThumbs();
+    HIST = []; HI = -1; commit();
+  }
+  async function loadFile(file) {
+    if (!file) return;
+    if (file.type && file.type.indexOf('image/') !== 0) { toast('Pilih file foto (JPG, PNG, atau WebP).'); return; }
+    setBusy(true, 'Membuka foto…'); await tick();
+    try {
+      var bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      setSource(bmp, bmp.width, bmp.height, false);
+      setBusy(false);
+    } catch (e) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () { setSource(img, img.naturalWidth, img.naturalHeight, false); URL.revokeObjectURL(url); setBusy(false); };
+      img.onerror = function () { URL.revokeObjectURL(url); setBusy(false); toast('Foto tidak bisa dibuka. Coba format JPG atau PNG.'); };
+      img.src = url;
+    }
+  }
+
+  /* ---------- simpan ---------- */
+  function toBlob(canvas, type, q) { return new Promise(function (res, rej) { canvas.toBlob(function (b) { b ? res(b) : rej(new Error('blob')); }, type, q); }); }
+  async function exportBlob(png) {
+    var full = buildBase(ST.src, ST.sw, ST.sh, P, 4096), W = full.width, H = full.height;
+    var id = full.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H);
+    await tick();
+    var bl = blurRGB(id.data, W, H, blurRadius(Math.max(W, H)));
+    await tick();
+    var out = new ImageData(W, H);
+    render(id.data, bl, W, H, P, Math.max(W, H) / 1400, out.data, null);
+    var work = mk(W, H), wx = work.getContext('2d');
+    wx.putImageData(out, 0, 0); drawStamp(wx, W, H, P);
+    var fin = mk(W, H); composeInto(fin, work, P);
+    return toBlob(fin, png ? 'image/png' : 'image/jpeg', 0.92);
+  }
+  async function saveImage() {
+    if (!ST.src) return;
+    var png = $('fmt').value === 'png';
+    setBusy(true, 'Menyimpan foto…'); await tick();
+    try {
+      var blob = await exportBlob(png);
+      var d = new Date(), p = function (n) { return ('0' + n).slice(-2); };
+      var name = 'noct-retro-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + (png ? '.png' : '.jpg');
+      setBusy(false);
+      if (dl) await dl.save({ filename: name, data: blob });
+      else {
+        var url = URL.createObjectURL(blob), a = document.createElement('a');
+        a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      }
+      toast('Foto disimpan');
+    } catch (e) {
+      setBusy(false);
+      if (!e || e.code !== 'declined') toast('Foto tidak bisa disimpan di sini.');
+    }
+  }
+
+  /* ---------- pasang ---------- */
+  buildUI();
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) { b.addEventListener('click', function () { setTab(b.dataset.tab); }); });
+  $('btnOpen').addEventListener('click', function () { $('fileIn').click(); });
+  $('btnCam').addEventListener('click', function () { $('camIn').click(); });
+  $('fileIn').addEventListener('change', function (e) { loadFile(e.target.files[0]); e.target.value = ''; });
+  $('camIn').addEventListener('change', function (e) { loadFile(e.target.files[0]); e.target.value = ''; });
+  $('btnSave').addEventListener('click', saveImage);
+  $('btnUndo').addEventListener('click', undo);
+  $('btnRedo').addEventListener('click', redo);
+  var hold = $('btnHold');
+  function holdOn(e) { if (e) e.preventDefault(); ST.compare = true; renderNow(); }
+  function holdOff() { if (!ST.compare) return; ST.compare = false; renderNow(); }
+  hold.addEventListener('pointerdown', holdOn); hold.addEventListener('pointerup', holdOff);
+  hold.addEventListener('pointerleave', holdOff); hold.addEventListener('pointercancel', holdOff);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '\\' && !e.repeat) holdOn(e);
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+  });
+  document.addEventListener('keyup', function (e) { if (e.key === '\\') holdOff(); });
+  var stage = $('stage'), dragN = 0;
+  stage.addEventListener('dragenter', function (e) { e.preventDefault(); dragN++; $('drop').hidden = false; });
+  stage.addEventListener('dragover', function (e) { e.preventDefault(); });
+  stage.addEventListener('dragleave', function () { dragN = Math.max(0, dragN - 1); if (!dragN) $('drop').hidden = true; });
+  stage.addEventListener('drop', function (e) { e.preventDefault(); dragN = 0; $('drop').hidden = true; if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+  var sc = sampleCanvas();
+  setSource(sc, sc.width, sc.height, true);
+  choosePreset('kodak');
+  try { if (document.fonts && document.fonts.load) document.fonts.load('500 20px "DM Mono"').then(schedule); } catch (e) {}
+  try {
+    if (window.claude && window.claude.use) window.claude.use('downloads').then(function (d) { dl = d; }).catch(function () {});
+  } catch (e) {}
+})();
+</script>
+
+</body></html>
